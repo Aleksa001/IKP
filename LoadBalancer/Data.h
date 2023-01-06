@@ -1,15 +1,15 @@
 #pragma once
 #include "../../../../../../Program Files (x86)/Windows Kits/10/Include/10.0.22621.0/um/WinSock2.h"
-struct Data 
+typedef struct Data 
 {
 	char data[512];
 	SOCKET acceptedSocket;
 
-};
+} Data;
 
-struct ClientData
+typedef struct ClientData
 {
 	char data[512];
 	int len;
 
-};
+} DataClient;
