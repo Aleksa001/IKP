@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <iostream>
+#include <pthread.h>
 #include "CircularBuffer.h"
 
 #define DEFAULT_BUFLEN 512
@@ -9,7 +10,7 @@
 #define DEFAULT_PORT "5059"
 
 bool InitializeWindowsSockets();
-void ListenClient();
+void ListenClient(int iResult, SOCKET acceptedSocket, char recvbuf[DEFAULT_BUFLEN], circular_buffer* cb);
 
 int main()
 {
@@ -112,37 +113,11 @@ int main()
             WSACleanup();
             return 1;
         }
-
-        
-        do {
-
-            //Receive data until the client shuts down the connection
-            iResult = recv(acceptedSocket, recvbuf, DEFAULT_BUFLEN, 0);
-            if (iResult > 0)
-            {
-                printf("Message received from client: %s.\n", recvbuf);
-                cb_push(cb, recvbuf);
-                printf("Successfuly pushed to buffer!\n");
-                printBuffer(cb);
-            }
-            else if (iResult == 0)
-            {
-                // connection was closed gracefully
-                printf("Connection with client closed.\n");
-                closesocket(acceptedSocket);
-                
-            }
-            else
-            {
-                // there was an error during recv
-                printf("recv failed with error: %d\n", WSAGetLastError());
-                closesocket(acceptedSocket);
-                break;
-               
-            }
-
-
-        } while (1);
+        //ovde da se pravi novi tred za svakog kliejnt i da slusa za poruke
+        // nego nece da mi ukljuci nesto pthred.h i ne mogu da koristim....
+        //pthread_t newThread;
+        ListenClient(iResult, acceptedSocket,recvbuf,cb);
+       // pthread_create(&newThread,);
 
 
         // here is where server shutdown loguc could be placed
@@ -182,8 +157,36 @@ bool InitializeWindowsSockets()
     return true;
 }
 
-void ListenClient() {
+void ListenClient(int iResult, SOCKET acceptedSocket, char recvbuf[DEFAULT_BUFLEN], circular_buffer* cb) {
+    do {
 
+        //Receive data until the client shuts down the connection
+        iResult = recv(acceptedSocket, recvbuf, DEFAULT_BUFLEN, 0);
+        if (iResult > 0)
+        {
+            printf("Message received from client: %s.\n", recvbuf);
+            cb_push(cb, recvbuf);
+            printf("Successfuly pushed to buffer!\n");
+            printBuffer(cb);
+        }
+        else if (iResult == 0)
+        {
+            // connection was closed gracefully
+            printf("Connection with client closed.\n");
+            closesocket(acceptedSocket);
+
+        }
+        else
+        {
+            // there was an error during recv
+            printf("recv failed with error: %d\n", WSAGetLastError());
+            closesocket(acceptedSocket);
+            break;
+
+        }
+
+
+    } while (1);
 }
 
 
