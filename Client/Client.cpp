@@ -25,8 +25,8 @@ int main()
     // variable used to store function return value
     int iResult;
     // message to send
-    char m[] = "this is a test" ;
-    char* messageToSend = m;
+    //char m[] = "this is a test" ;
+    //char* messageToSend = m;
 
 
 
@@ -68,15 +68,17 @@ int main()
     do {
 
         //bzero(buffer, sizeof(buffer));
-        printf("Unesite poruku:");
+        printf("Type message:");
         n = 0;
         while ((buffer[n++] = getchar()) != '\n');
         if ((strncmp(buffer, "exit", 4)) == 0) {
             printf("Client Exit...\n");
             break;
         }
+        //dodam na kraj oznaku za kraj stringa jer posle ispisuje nesto dodatno nakon same poruke
+        buffer[n++] = '\0';
         // Send an prepared message with null terminator included
-        iResult = send(connectSocket, buffer, DEFAULT_BUFLEN, 0);
+        iResult = send(connectSocket, buffer, n, 0);
 
         if (iResult == SOCKET_ERROR)
         {

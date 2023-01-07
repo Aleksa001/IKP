@@ -2,12 +2,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <iostream>
+#include "CircularBuffer.h"
 
 #define DEFAULT_BUFLEN 512
+#define CBLEN 1024
 #define DEFAULT_PORT "5059"
 
 bool InitializeWindowsSockets();
-
+void ListenClient();
 
 int main()
 {
@@ -19,6 +21,9 @@ int main()
     int iResult;
     // Buffer used for storing incoming data
     char recvbuf[DEFAULT_BUFLEN];
+    //circular buffer init
+    circular_buffer c = {};
+    circular_buffer *cb = &c;
 
     if (InitializeWindowsSockets() == false)
     {
@@ -26,6 +31,8 @@ int main()
         // by InitializeWindowsSockets() function
         return 1;
     }
+    //init bufffer
+    cb_init(cb, CBLEN, 512 * sizeof(char));
 
     // Prepare address information structures
     addrinfo* resultingAddress = NULL;
@@ -92,6 +99,10 @@ int main()
         // Returning value is acceptedSocket used for further
         // Client<->Server communication. This version of
         // server will handle only one client.
+
+        //Cekamo klijente i kad se poveze pravimo novi tred za njega koji slusa samo njega
+
+
         acceptedSocket = accept(listenSocket, NULL, NULL);
 
         if (acceptedSocket == INVALID_SOCKET)
@@ -110,6 +121,9 @@ int main()
             if (iResult > 0)
             {
                 printf("Message received from client: %s.\n", recvbuf);
+                cb_push(cb, recvbuf);
+                printf("Successfuly pushed to buffer!\n");
+                printBuffer(cb);
             }
             else if (iResult == 0)
             {
@@ -123,6 +137,7 @@ int main()
                 // there was an error during recv
                 printf("recv failed with error: %d\n", WSAGetLastError());
                 closesocket(acceptedSocket);
+                break;
                
             }
 
@@ -148,6 +163,7 @@ int main()
     closesocket(listenSocket);
     closesocket(acceptedSocket);
     WSACleanup();
+    cb_free(cb);
 
 
 
@@ -166,6 +182,9 @@ bool InitializeWindowsSockets()
     return true;
 }
 
+void ListenClient() {
+
+}
 
 
 
