@@ -115,9 +115,9 @@ int main()
         }
         //ovde da se pravi novi tred za svakog kliejnt i da slusa za poruke
         // nego nece da mi ukljuci nesto pthred.h i ne mogu da koristim....
-        //pthread_t newThread;
+        pthread_t newThread;
         ListenClient(iResult, acceptedSocket,recvbuf,cb);
-       // pthread_create(&newThread,);
+        //pthread_create(&newThread,);
 
 
         // here is where server shutdown loguc could be placed
