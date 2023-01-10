@@ -13,8 +13,8 @@
 
 bool InitializeWindowsSockets();
 void *ListenClient(void* arguments);
-int ListeningForNewClients();
-int ListeningForNewWorker();
+void *ListeningForNewClients(void* arguments);
+void *ListeningForNewWorker(void* arguments);
 char recvbuf[DEFAULT_BUFLEN];
 struct arg_struct {
     int iResult;
@@ -26,10 +26,19 @@ struct arg_struct {
 
 int main()
 {
-    
-    ListeningForNewClients();
+    pthread_t ClientThread;
+    pthread_t WorkerThread;
 
 
+    //ListenClient(iResult, acceptedSocket,recvbuf,cb);
+    pthread_create(&ClientThread, NULL, &ListeningForNewClients, NULL);
+    pthread_create(&WorkerThread, NULL, &ListeningForNewWorker, NULL);
+   // ListeningForNewClients();
+   // 
+   //ListeningForNewWorker();
+
+    (void)pthread_join(ClientThread, NULL);
+    (void)pthread_join(WorkerThread, NULL);
     return 0;
 }
 
@@ -44,7 +53,7 @@ bool InitializeWindowsSockets()
     }
     return true;
 }
-int ListeningForNewWorker() {
+void *ListeningForNewWorker(void* arguments) {
     // Socket used for listening for new clients 
     SOCKET listenSocket = INVALID_SOCKET;
     // Socket used for communication with client
@@ -61,7 +70,7 @@ int ListeningForNewWorker() {
     {
         // we won't log anything since it will be logged
         // by InitializeWindowsSockets() function
-        return 1;
+        //return 1;
     }
     //init bufffer
     //cb_init(cb, CBLEN, 512 * sizeof(char));
@@ -82,7 +91,7 @@ int ListeningForNewWorker() {
     {
         printf("getaddrinfo failed with error: %d\n", iResult);
         WSACleanup();
-        return 1;
+        //return 1;
     }
 
     // Create a SOCKET for connecting to server
@@ -95,7 +104,7 @@ int ListeningForNewWorker() {
         printf("socket failed with error: %ld\n", WSAGetLastError());
         freeaddrinfo(resultingAddress);
         WSACleanup();
-        return 1;
+       // return 1;
     }
 
     // Setup the TCP listening socket - bind port number and local address 
@@ -107,7 +116,7 @@ int ListeningForNewWorker() {
         freeaddrinfo(resultingAddress);
         closesocket(listenSocket);
         WSACleanup();
-        return 1;
+       // return 1;
     }
 
     // Since we don't need resultingAddress any more, free it
@@ -120,7 +129,7 @@ int ListeningForNewWorker() {
         printf("listen failed with error: %d\n", WSAGetLastError());
         closesocket(listenSocket);
         WSACleanup();
-        return 1;
+       // return 1;
     }
 
     printf("Server initialized, waiting for workers.\n");
@@ -142,7 +151,7 @@ int ListeningForNewWorker() {
             printf("accept failed with error: %d\n", WSAGetLastError());
             closesocket(listenSocket);
             WSACleanup();
-            return 1;
+           // return 1;
         }
 
         //ovde da se pravi novi tred za svakog kliejnt i da slusa za poruke
@@ -169,7 +178,7 @@ int ListeningForNewWorker() {
         printf("shutdown failed with error: %d\n", WSAGetLastError());
         closesocket(acceptedSocket);
         WSACleanup();
-        return 1;
+        //return 1;
     }
 
     // cleanup
@@ -181,7 +190,7 @@ int ListeningForNewWorker() {
 
 
 }
-int ListeningForNewClients() {
+void *ListeningForNewClients(void* arguments) {
     // Socket used for listening for new clients 
     SOCKET listenSocket = INVALID_SOCKET;
     // Socket used for communication with client
@@ -198,7 +207,7 @@ int ListeningForNewClients() {
     {
         // we won't log anything since it will be logged
         // by InitializeWindowsSockets() function
-        return 1;
+        //return 1;
     }
     //init bufffer
     cb_init(cb, CBLEN, 512 * sizeof(char));
@@ -219,7 +228,7 @@ int ListeningForNewClients() {
     {
         printf("getaddrinfo failed with error: %d\n", iResult);
         WSACleanup();
-        return 1;
+        //return 1;
     }
 
     // Create a SOCKET for connecting to server
@@ -232,7 +241,7 @@ int ListeningForNewClients() {
         printf("socket failed with error: %ld\n", WSAGetLastError());
         freeaddrinfo(resultingAddress);
         WSACleanup();
-        return 1;
+        //return 1;
     }
 
     // Setup the TCP listening socket - bind port number and local address 
@@ -244,7 +253,7 @@ int ListeningForNewClients() {
         freeaddrinfo(resultingAddress);
         closesocket(listenSocket);
         WSACleanup();
-        return 1;
+        //return 1;
     }
 
     // Since we don't need resultingAddress any more, free it
@@ -257,7 +266,7 @@ int ListeningForNewClients() {
         printf("listen failed with error: %d\n", WSAGetLastError());
         closesocket(listenSocket);
         WSACleanup();
-        return 1;
+       // return 1;
     }
 
     printf("Server initialized, waiting for clients.\n");
@@ -279,7 +288,7 @@ int ListeningForNewClients() {
             printf("accept failed with error: %d\n", WSAGetLastError());
             closesocket(listenSocket);
             WSACleanup();
-            return 1;
+            //return 1;
         }
         //ovde da se pravi novi tred za svakog kliejnt i da slusa za poruke
         // nego nece da mi ukljuci nesto pthred.h i ne mogu da koristim....
@@ -305,7 +314,7 @@ int ListeningForNewClients() {
         printf("shutdown failed with error: %d\n", WSAGetLastError());
         closesocket(acceptedSocket);
         WSACleanup();
-        return 1;
+        //return 1;
     }
 
     // cleanup
