@@ -15,22 +15,8 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="LoadBalancer.cpp">
+    <ClCompile Include="Worker.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CircularBuffer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="Data.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CircularBuffer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Worker\WorkerStruct.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
 </Project>

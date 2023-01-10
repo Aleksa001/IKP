@@ -3,6 +3,7 @@
 #include "../../../../../../Program Files (x86)/Windows Kits/10/Include/10.0.22621.0/ucrt/corecrt_malloc.h"
 #include <vcruntime_string.h>
 #include "../../../../../../Program Files (x86)/Windows Kits/10/Include/10.0.22621.0/ucrt/stdio.h"
+#include <string.h>
 
 void cb_init(circular_buffer* cb, size_t capacity, size_t sz)
 {

@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{70b8d23c-9b77-4ec5-bf83-ca7303741556}</ProjectGuid>
-    <RootNamespace>LoadBalancer</RootNamespace>
+    <ProjectGuid>{ee015474-77e0-4a27-a28b-264f03c8874c}</ProjectGuid>
+    <RootNamespace>Worker</RootNamespace>
     <WindowsTargetPlatformVersion>10.0.20348.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -142,13 +142,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="CircularBuffer.cpp" />
-    <ClCompile Include="LoadBalancer.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\Worker\WorkerStruct.h" />
-    <ClInclude Include="CircularBuffer.h" />
-    <ClInclude Include="Data.h" />
+    <ClCompile Include="Worker.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
