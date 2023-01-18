@@ -1,44 +1,59 @@
+#define WIN32_LEAN_AND_MEAN
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
+
 #include <ws2tcpip.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <iostream>
 #include <pthread.h>
-#include "CircularBuffer.h"
+#include "CircularBuffer.cpp"
+#include "Data.h"
 
 
 #define DEFAULT_BUFLEN 512
 #define CBLEN 1024
 #define DEFAULT_PORT "5059"
 #define DEFAULT_PORT_WORKER "5000"
+#define DEFAULT_PORT_REC 5001
 
 bool InitializeWindowsSockets();
 void *ListenClient(void* arguments);
 void *ListeningForNewClients(void* arguments);
 void *ListeningForNewWorker(void* arguments);
+void *SendDataToWorker(void* arguments);
 char recvbuf[DEFAULT_BUFLEN];
 struct arg_struct {
     int iResult;
     SOCKET accSocket;
     //char buffer[DEFAULT_BUFLEN];
-    circular_buffer* cb;
+   
 } *args;
 
 
 int main()
 {
+    if (bufferCheck()) {
+        printf("Buffer uspesno inicijalizovan");
+    }
+    //prihvata klijente i prima podatke
     pthread_t ClientThread;
+    //prihvata workere i smesta ih u sorted list
     pthread_t WorkerThread;
+    //odlucuje kom workeru salje
+    
 
-
-    //ListenClient(iResult, acceptedSocket,recvbuf,cb);
+   
     pthread_create(&ClientThread, NULL, &ListeningForNewClients, NULL);
     pthread_create(&WorkerThread, NULL, &ListeningForNewWorker, NULL);
-   // ListeningForNewClients();
-   // 
-   //ListeningForNewWorker();
+ 
+   
+   
 
     (void)pthread_join(ClientThread, NULL);
     (void)pthread_join(WorkerThread, NULL);
+   
+    
     return 0;
 }
 
@@ -62,9 +77,7 @@ void *ListeningForNewWorker(void* arguments) {
     int iResult;
     // Buffer used for storing incoming data
 
-    //circular buffer init
-    //circular_buffer c = {};
-    //circular_buffer* cb = &c;
+ 
 
     if (InitializeWindowsSockets() == false)
     {
@@ -73,8 +86,7 @@ void *ListeningForNewWorker(void* arguments) {
         //return 1;
     }
     //init bufffer
-    //cb_init(cb, CBLEN, 512 * sizeof(char));
-
+   
     // Prepare address information structures
     addrinfo* resultingAddress = NULL;
     addrinfo hints;
@@ -136,14 +148,7 @@ void *ListeningForNewWorker(void* arguments) {
 
     do
     {
-        // Wait for clients and accept client connections.
-        // Returning value is acceptedSocket used for further
-        // Client<->Server communication. This version of
-        // server will handle only one client.
-
-        
-
-
+       
         acceptedSocket = accept(listenSocket, NULL, NULL);
 
         if (acceptedSocket == INVALID_SOCKET)
@@ -153,21 +158,18 @@ void *ListeningForNewWorker(void* arguments) {
             WSACleanup();
            // return 1;
         }
+        printf("%d", acceptedSocket);
+        Data a;
+        a.DataCount = 0;
+        a.accSocket = acceptedSocket;
+        //ddoa ovo u sorted list 
 
-        //ovde da se pravi novi tred za svakog kliejnt i da slusa za poruke
-        // nego nece da mi ukljuci nesto pthred.h i ne mogu da koristim....
-        //pthread_t newThread;
-        //args = (arg_struct*)malloc(sizeof(struct arg_struct) * 1);
-        //args->accSocket = acceptedSocket;
-        //args->buffer = recvbuf;
-        //args->cb = cb;
-        //args->iResult = iResult;
-
-        //ListenClient(iResult, acceptedSocket,recvbuf,cb);
-        //pthread_create(&newThread, NULL, &ListenClient, args);
-
-
-        // here is where server shutdown loguc could be placed
+       //odredi kom ce da salje
+        pthread_t LoadBalancerThread;
+        pthread_create(&LoadBalancerThread, NULL, &SendDataToWorker, NULL);
+        (void)pthread_join(LoadBalancerThread, NULL);
+        //TODO
+        //stavlja se Data a u sorted list
 
     } while (1);
 
@@ -185,7 +187,7 @@ void *ListeningForNewWorker(void* arguments) {
     closesocket(listenSocket);
     closesocket(acceptedSocket);
     WSACleanup();
-    //cb_free(cb);
+   
 
 
 
@@ -199,9 +201,7 @@ void *ListeningForNewClients(void* arguments) {
     int iResult;
     // Buffer used for storing incoming data
 
-    //circular buffer init
-    circular_buffer c = {};
-    circular_buffer* cb = &c;
+   
 
     if (InitializeWindowsSockets() == false)
     {
@@ -210,7 +210,7 @@ void *ListeningForNewClients(void* arguments) {
         //return 1;
     }
     //init bufffer
-    cb_init(cb, CBLEN, 512 * sizeof(char));
+    
 
     // Prepare address information structures
     addrinfo* resultingAddress = NULL;
@@ -295,8 +295,7 @@ void *ListeningForNewClients(void* arguments) {
         pthread_t newThread;
         args = (arg_struct*)malloc(sizeof(struct arg_struct) * 1);
         args->accSocket = acceptedSocket;
-        //args->buffer = recvbuf;
-        args->cb = cb;
+       
         args->iResult = iResult;
 
         //ListenClient(iResult, acceptedSocket,recvbuf,cb);
@@ -321,15 +320,14 @@ void *ListeningForNewClients(void* arguments) {
     closesocket(listenSocket);
     closesocket(acceptedSocket);
     WSACleanup();
-    cb_free(cb);
+    
 
 }
 void *ListenClient(void* arguments) {
     struct arg_struct* args = (arg_struct*)arguments;
     int iResult = args->iResult;
     SOCKET acceptedSocket = args->accSocket;
-    circular_buffer* cb = args->cb;
-
+    
     do {
 
         //Receive data until the client shuts down the connection
@@ -337,9 +335,10 @@ void *ListenClient(void* arguments) {
         if (iResult > 0)
         {
             printf("Message received from client: %s.\n", recvbuf);
-            cb_push(cb, recvbuf);
+            circularBufferPush(recvbuf);
+           
             printf("Successfuly pushed to buffer!\n");
-            printBuffer(cb);
+           
         }
         else if (iResult == 0)
         {
@@ -361,6 +360,85 @@ void *ListenClient(void* arguments) {
     } while (1);
     return NULL;
 }
+void *SendDataToWorker(void* arguments) {
+    //TODO
+    // socket used to communicate with server
+    SOCKET connectSocket = INVALID_SOCKET;
+    // variable used to store function return value
+    int iResult;
+    // message to send
+    
 
+    if (InitializeWindowsSockets() == false)
+    {
+        // we won't log anything since it will be logged
+        // by InitializeWindowsSockets() function
+        //return 1;
+    }
+
+    // create a socket
+    connectSocket = socket(AF_INET,
+        SOCK_STREAM,
+        IPPROTO_TCP);
+
+    if (connectSocket == INVALID_SOCKET)
+    {
+        printf("socket failed with error: %ld\n", WSAGetLastError());
+        WSACleanup();
+        //return 1;
+    }
+
+    // create and initialize address structure
+    sockaddr_in serverAddress;
+    serverAddress.sin_family = AF_INET;
+    serverAddress.sin_addr.s_addr = inet_addr("127.0.0.1");
+    //inet_pton(AF_INET6,"127.0.0.1", );
+    //inet_addr("127.0.0.1");
+    serverAddress.sin_port = htons(DEFAULT_PORT_REC);
+    // connect to server specified in serverAddress and socket connectSocket
+    if (connect(connectSocket, (SOCKADDR*)&serverAddress, sizeof(serverAddress)) == SOCKET_ERROR)
+    {
+        printf("Unable to connect to server.\n");
+        closesocket(connectSocket);
+        WSACleanup();
+    }
+    
+    do {
+
+       
+        char item[1024] = "";
+        strcpy(item, circularBufferPop());
+
+        //buffer = item;
+        
+        if (item != NULL) {
+            iResult = send(connectSocket, item, strlen(item), 0);
+           
+        }
+        
+
+        /*if (iResult == SOCKET_ERROR)
+        {
+            printf("send failed with error: %d\n", WSAGetLastError());
+            closesocket(connectSocket);
+            WSACleanup();
+            //return 1;
+        }*/
+        //duzina poruke 
+        
+
+    } while (true);
+
+
+    // cleanup
+    closesocket(connectSocket);
+    WSACleanup();
+
+
+
+
+
+    return NULL;
+}
 
 

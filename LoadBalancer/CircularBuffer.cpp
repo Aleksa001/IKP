@@ -1,72 +1,110 @@
-#include "CircularBuffer.h"
-#include "../../../../../../Program Files (x86)/Windows Kits/10/Include/10.0.22621.0/ucrt/crtdbg.h"
-#include "../../../../../../Program Files (x86)/Windows Kits/10/Include/10.0.22621.0/ucrt/corecrt_malloc.h"
-#include <vcruntime_string.h>
-#include "../../../../../../Program Files (x86)/Windows Kits/10/Include/10.0.22621.0/ucrt/stdio.h"
+#define _CRT_SECURE_NO_WARNINGS
+
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include "CIrcularBuffer.h"
+#define BUFFER_SIZE 1024
 
-void cb_init(circular_buffer* cb, size_t capacity, size_t sz)
+//struktura
+struct circular_buffer
 {
-    if (cb->buffer == NULL)
-        //printf("Buffer is NULL!!!");
-    cb->buffer = malloc(capacity * sz);
-    
-    cb->buffer_end = (char*)cb->buffer + capacity * sz;
-    cb->capacity = capacity;
-    cb->count = 0;
-    cb->sz = sz;
-    cb->head = cb->buffer;
-    cb->tail = cb->buffer;
-    printf("Buffer inited!!!\n");
+	char buffer[30][BUFFER_SIZE];
+	int push;       //index za upis
+	int pop;		//index za citanje
+	int push_count; //ukupan broj dodatih poruka
+	int pop_count; //ukupan broj procitanih poruka
+
+};
+
+extern struct circular_buffer* cb = NULL;
+
+//pushovanje podataka u bafer
+
+
+int circularBufferPush(const char* data)
+{
+
+
+
+
+
+	if (cb == NULL) {
+		cb = (struct circular_buffer*)malloc(sizeof(struct circular_buffer));
+
+		cb->push = 0;
+		cb->pop = 0;
+		cb->push_count = 0;
+		cb->pop_count = 0;
+
+	}
+	if (cb->push == 30) //kruzni bafer je pun
+	{
+		cb->push = 0;    //sada je pokazivac opet na nultom mesto, jer je stigao do kraja
+	}
+
+
+	strcpy_s(cb->buffer[cb->push], data);  //stavi se podatak u kruzni bafer
+	cb->push++;  //pokazivac se pomeri za +1
+	cb->push_count++;
+
+
+
+	return cb->push_count;
+	//upisan je podatak, counter se poveca za jedan
 }
 
-void cb_free(circular_buffer* cb)
+
+
+//skidanje podataka
+const char* circularBufferPop()
 {
-    free(cb->buffer);
-    free(cb->buffer_end);
-    //free(cb->capacity);
-    //free(cb->count);
-    free(cb->head);
-    free(cb->tail);
-    //free(cb->sz);
-    // clear out other fields too, just to be safe
+
+	if (cb == NULL) {
+		return "";
+
+	}
+
+
+
+
+	if (cb->pop_count >= cb->push_count) //nemamo elemenata u baferu
+	{
+		return "";
+	}
+
+	const char* data = cb->buffer[cb->pop];  //iscitam u suprotnom
+	cb->pop++;
+	cb->pop_count++;
+
+	if (cb->pop == 30)
+	{
+		cb->pop = 0;
+	}
+
+
+	return data;
+}
+
+bool bufferCheck() {
+	if (cb == NULL) {
+		cb = (struct circular_buffer*)malloc(sizeof(struct circular_buffer));
+		cb->push = 0;
+		cb->pop = 0;
+		cb->push_count = 0;
+		cb->pop_count = 0;
+
+	}
+
+
+	if (cb->pop_count < cb->push_count) {
+		return true;
+	}
+	else {
+		return false;
+	}
 }
 
 
-void cb_push(circular_buffer* cb, const void* item)
-{
-    if (cb->count == cb->capacity) {
-        // handle error
-    }
-    memcpy(cb->head, item, cb->sz);
-    cb->head = (char*)cb->head + cb->sz;
-    if (cb->head == cb->buffer_end)
-        cb->head = cb->buffer;
-    cb->count++;
-}
-
-void cb_pop(circular_buffer* cb, void* item)
-{
-    if (cb->count == 0) {
-        // handle error
-    }
-    memcpy(item, cb->tail, cb->sz);
-    cb->tail = (char*)cb->tail + cb->sz;
-    if (cb->tail == cb->buffer_end)
-        cb->tail = cb->buffer;
-    cb->count--;
-}
-
-
-void  printBuffer(circular_buffer* buffer)
-{
-    printf("Current state of circular baffer:\n");
-    void* h = buffer->head;
-    void* t = buffer->tail;
-    while (t != h) {
-        printf("%s", t);    
-        t = (char*)t + buffer->sz;
-    }
-}
 
 

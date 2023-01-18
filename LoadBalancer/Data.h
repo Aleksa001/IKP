@@ -2,8 +2,9 @@
 #include "../../../../../../Program Files (x86)/Windows Kits/10/Include/10.0.22621.0/um/WinSock2.h"
 typedef struct Data 
 {
-	char data[512];
-	SOCKET acceptedSocket;
+	
+	int DataCount;
+	SOCKET accSocket;
 
 } Data;
 
