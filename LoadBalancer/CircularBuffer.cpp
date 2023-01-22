@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "CIrcularBuffer.h"
+#include "CircularBuffer.h"
 #define BUFFER_SIZE 1024
 
 //struktura
@@ -43,8 +43,8 @@ int circularBufferPush(const char* data)
 		cb->push = 0;    //sada je pokazivac opet na nultom mesto, jer je stigao do kraja
 	}
 
-
-	strcpy_s(cb->buffer[cb->push], data);  //stavi se podatak u kruzni bafer
+	
+	strcpy(cb->buffer[cb->push], data);  //stavi se podatak u kruzni bafer
 	cb->push++;  //pokazivac se pomeri za +1
 	cb->push_count++;
 

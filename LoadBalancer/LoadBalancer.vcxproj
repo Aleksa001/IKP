@@ -144,11 +144,13 @@
   <ItemGroup>
     <ClCompile Include="CircularBuffer.cpp" />
     <ClCompile Include="LoadBalancer.cpp" />
+    <ClCompile Include="SortedList.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Worker\WorkerStruct.h" />
     <ClInclude Include="CircularBuffer.h" />
     <ClInclude Include="Data.h" />
+    <ClInclude Include="SortedList.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

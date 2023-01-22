@@ -7,8 +7,12 @@
 #include <stdio.h>
 #include <iostream>
 #include <pthread.h>
-#include "CircularBuffer.cpp"
+#include <semaphore.h>
+
+#include "CircularBuffer.h"
 #include "Data.h"
+#include "SortedList.h"
+
 
 
 #define DEFAULT_BUFLEN 512
@@ -16,13 +20,23 @@
 #define DEFAULT_PORT "5059"
 #define DEFAULT_PORT_WORKER "5000"
 #define DEFAULT_PORT_REC 5001
+#define DEFAULT_PORT_DIS "5002"
 
 bool InitializeWindowsSockets();
 void *ListenClient(void* arguments);
 void *ListeningForNewClients(void* arguments);
 void *ListeningForNewWorker(void* arguments);
-void *SendDataToWorker(void* arguments);
+void *NewWorker(void* arguments);
+void* Send(void* arguments);
+void *SendDistribution(void* arguments);
+void *Distribution(void* arguments);
+void AddToSortedLIst(Data* d);
 char recvbuf[DEFAULT_BUFLEN];
+char recvbuf2[DEFAULT_BUFLEN];
+char memoryDis[512][1024];
+int count = 0;
+sem_t mutex;
+int dis = 0;
 struct arg_struct {
     int iResult;
     SOCKET accSocket;
@@ -34,24 +48,29 @@ struct arg_struct {
 int main()
 {
     if (bufferCheck()) {
-        printf("Buffer uspesno inicijalizovan");
+        printf("Buffer uspesno inicijalizovan!");
     }
+    sem_init(&mutex, 0, 1);
     //prihvata klijente i prima podatke
     pthread_t ClientThread;
     //prihvata workere i smesta ih u sorted list
     pthread_t WorkerThread;
     //odlucuje kom workeru salje
+    pthread_t DistributionThread;
+    
     
 
    
     pthread_create(&ClientThread, NULL, &ListeningForNewClients, NULL);
     pthread_create(&WorkerThread, NULL, &ListeningForNewWorker, NULL);
- 
+    pthread_create(&DistributionThread, NULL, &Distribution, NULL);
+   
    
    
 
     (void)pthread_join(ClientThread, NULL);
     (void)pthread_join(WorkerThread, NULL);
+    (void)pthread_join(DistributionThread, NULL);
    
     
     return 0;
@@ -145,12 +164,21 @@ void *ListeningForNewWorker(void* arguments) {
     }
 
     printf("Server initialized, waiting for workers.\n");
+    pthread_t ListenForNewWorkerThread;
+    pthread_t SendTrhread;
 
-    do
-    {
-       
-        acceptedSocket = accept(listenSocket, NULL, NULL);
+    args = (arg_struct*)malloc(sizeof(struct arg_struct) * 1);
+    args->accSocket = listenSocket;
 
+
+    pthread_create(&ListenForNewWorkerThread, NULL, &NewWorker, args);
+    pthread_create(&SendTrhread, NULL, &Send, NULL);
+
+    (void)pthread_join(ListenForNewWorkerThread, NULL);
+    (void)pthread_join(SendTrhread, NULL);
+    /*
+     acceptedSocket = accept(listenSocket, NULL, NULL);
+        printf("Prodje tek kad primi nekog!!!");
         if (acceptedSocket == INVALID_SOCKET)
         {
             printf("accept failed with error: %d\n", WSAGetLastError());
@@ -158,20 +186,17 @@ void *ListeningForNewWorker(void* arguments) {
             WSACleanup();
            // return 1;
         }
-        printf("%d", acceptedSocket);
-        Data a;
-        a.DataCount = 0;
-        a.accSocket = acceptedSocket;
-        //ddoa ovo u sorted list 
-
-       //odredi kom ce da salje
-        pthread_t LoadBalancerThread;
-        pthread_create(&LoadBalancerThread, NULL, &SendDataToWorker, NULL);
-        (void)pthread_join(LoadBalancerThread, NULL);
-        //TODO
-        //stavlja se Data a u sorted list
-
-    } while (1);
+        else
+        {
+            printf("Novi worker!!!(SOCKET: %d)", acceptedSocket);
+            Data a;
+            a.DataCount = 0;
+            a.accSocket = acceptedSocket;
+            //ddoa ovo u sorted list 
+            insert(&a);
+        }
+        */
+   
 
     // shutdown the connection since we're done
     iResult = shutdown(acceptedSocket, SD_SEND);
@@ -190,7 +215,7 @@ void *ListeningForNewWorker(void* arguments) {
    
 
 
-
+    return NULL;
 }
 void *ListeningForNewClients(void* arguments) {
     // Socket used for listening for new clients 
@@ -298,7 +323,7 @@ void *ListeningForNewClients(void* arguments) {
        
         args->iResult = iResult;
 
-        //ListenClient(iResult, acceptedSocket,recvbuf,cb);
+      
         pthread_create(&newThread, NULL, &ListenClient, args);
 
 
@@ -334,10 +359,12 @@ void *ListenClient(void* arguments) {
         iResult = recv(acceptedSocket, recvbuf, DEFAULT_BUFLEN, 0);
         if (iResult > 0)
         {
-            printf("Message received from client: %s.\n", recvbuf);
+            strcat_s(recvbuf, "\0");
+            printf("Message received from client: %s\n", recvbuf);
             circularBufferPush(recvbuf);
            
             printf("Successfuly pushed to buffer!\n");
+            strcpy(recvbuf,"");
            
         }
         else if (iResult == 0)
@@ -360,14 +387,178 @@ void *ListenClient(void* arguments) {
     } while (1);
     return NULL;
 }
-void *SendDataToWorker(void* arguments) {
-    //TODO
-    // socket used to communicate with server
-    SOCKET connectSocket = INVALID_SOCKET;
+void *NewWorker(void* arguments) {
+    struct arg_struct* args = (arg_struct*)arguments;
+   
+    SOCKET listenSocket = args->accSocket;
+    int iResult;
+    SOCKET acceptedSocket;
+    do
+    {
+        acceptedSocket = accept(listenSocket, NULL, NULL);
+         
+            if (acceptedSocket == INVALID_SOCKET)
+            {
+                printf("accept failed with error: %d\n", WSAGetLastError());
+                closesocket(listenSocket);
+                WSACleanup();
+                // return 1;
+            }
+            //sem_wait(&mutex);
+            printf("Novi worker!!!(SOCKET: %d)", acceptedSocket);
+            struct Data *a = (Data*)malloc(sizeof(struct Data));
+            a->DataCount = 0;
+            a->accSocket = acceptedSocket;
+            
+            insert(a);
+            SortedList* c = Current();
+            if (c->next != NULL) {
+                dis = 1;
+            }
+           
+            //sem_post(&mutex);
+    } while (true);
+    
+    
+
+    return NULL;
+}
+void AddToSortedLIst(Data* d) {
+    insert(d);
+}
+void* Send(void* arguments){
+    
+    do
+    {
+      
+
+
+
+        //odredi kom ce da salje
+           //sem_wait(&mutex);
+        SortedList* c = Current();
+        char item[1024] = "";
+        int iResult;
+        if (bufferCheck() && c!=NULL)
+        {
+
+            strcpy_s(item, circularBufferPop());
+            strcat_s(item, "\0");
+            printf("\nPodatak za salnje: %s\n", item);
+            AddToCurrent(strlen(item)-1);
+            iResult = send(c->data->accSocket, item, strlen(item)-1, 0);
+            
+            display();
+            strcpy_s(item, "");
+            sort();
+
+        }
+
+
+       
+        Sleep(2000);
+
+        //sem_post(&mutex);
+    } while (1);
+
+}
+void* SendDistribution(void* arguments) {
+    struct arg_struct* args = (arg_struct*)arguments;
+    SOCKET accSoket = args->accSocket;
+    int iResult;
+    //da se ocisti lista
+    do
+    {
+    if (dis == 1) {
+        sem_wait(&mutex);
+        Clear();
+        iResult = send(accSoket, "1", strlen("1"), 0);
+        int count2 = 0;
+        do
+        {
+            iResult = recv(accSoket, recvbuf2, DEFAULT_BUFLEN, 0);
+           
+            strcpy_s(memoryDis[count], recvbuf2 + '\0');
+            printf("Primljeno za distribuciju:%s\n", memoryDis[count]);
+            count++;
+
+            SortedList* c = Current();
+            char item[1024] = "";
+            int iResult;
+
+
+
+            strcpy_s(item, memoryDis[count2]);
+            strcat_s(item, "\0");
+            printf("\nPodatak za distribuciju: %s\n", item);
+            iResult = send(c->data->accSocket, item, strlen(item) , 0);
+            AddToCurrent(strlen(item));
+            display();
+            strcpy_s(item, "");
+            strcpy(recvbuf2, "");
+            sort();
+
+
+
+
+            count2++;
+            Sleep(2000);
+
+        } while (iResult > 0);
+       /*
+        do
+        {
+
+
+            SortedList* c = Current();
+            char item[1024] = "";
+            int iResult;
+     
+           
+
+                strcpy_s(item, memoryDis[count2]);
+                strcat_s(item, "\0");
+                printf("\nPodatak za distribuciju: %s\n", item);
+                iResult = send(c->data->accSocket, item, strlen(item) - 1, 0);
+                AddToCurrent(strlen(item) - 1);
+                display();
+                strcpy_s(item, "");
+                sort();
+
+         
+
+
+            count2++;
+            Sleep(2000);
+
+        } while (count2!=count);*/
+
+        for (int i = 0; i < count; i++) {
+          // printf("%d:%s\n", i, memory + i);
+      
+          strcpy(memoryDis[i], "");
+        }
+        count = 0;
+        dis = 0;
+        count2 = 0;
+        
+        strcpy(recvbuf2, "");
+        sem_post(&mutex);
+    }
+    } while (true);
+    
+        
+}
+void* Distribution(void* arguments){
+    // Socket used for listening for new clients 
+    SOCKET listenSocket = INVALID_SOCKET;
+    // Socket used for communication with client
+    SOCKET acceptedSocket = INVALID_SOCKET;
     // variable used to store function return value
     int iResult;
-    // message to send
-    
+    // Buffer used for storing incoming data
+
+
 
     if (InitializeWindowsSockets() == false)
     {
@@ -375,70 +566,109 @@ void *SendDataToWorker(void* arguments) {
         // by InitializeWindowsSockets() function
         //return 1;
     }
+    //init bufffer
 
-    // create a socket
-    connectSocket = socket(AF_INET,
-        SOCK_STREAM,
-        IPPROTO_TCP);
+    // Prepare address information structures
+    addrinfo* resultingAddress = NULL;
+    addrinfo hints;
 
-    if (connectSocket == INVALID_SOCKET)
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_INET;       // IPv4 address
+    hints.ai_socktype = SOCK_STREAM; // Provide reliable data streaming
+    hints.ai_protocol = IPPROTO_TCP; // Use TCP protocol
+    hints.ai_flags = AI_PASSIVE;     // 
+
+    // Resolve the server address and port
+    iResult = getaddrinfo(NULL, DEFAULT_PORT_DIS, &hints, &resultingAddress);
+    if (iResult != 0)
     {
-        printf("socket failed with error: %ld\n", WSAGetLastError());
+        printf("getaddrinfo failed with error: %d\n", iResult);
         WSACleanup();
         //return 1;
     }
 
-    // create and initialize address structure
-    sockaddr_in serverAddress;
-    serverAddress.sin_family = AF_INET;
-    serverAddress.sin_addr.s_addr = inet_addr("127.0.0.1");
-    //inet_pton(AF_INET6,"127.0.0.1", );
-    //inet_addr("127.0.0.1");
-    serverAddress.sin_port = htons(DEFAULT_PORT_REC);
-    // connect to server specified in serverAddress and socket connectSocket
-    if (connect(connectSocket, (SOCKADDR*)&serverAddress, sizeof(serverAddress)) == SOCKET_ERROR)
+    // Create a SOCKET for connecting to server
+    listenSocket = socket(AF_INET,      // IPv4 address famly
+        SOCK_STREAM,  // stream socket
+        IPPROTO_TCP); // TCP
+
+    if (listenSocket == INVALID_SOCKET)
     {
-        printf("Unable to connect to server.\n");
-        closesocket(connectSocket);
+        printf("socket failed with error: %ld\n", WSAGetLastError());
+        freeaddrinfo(resultingAddress);
         WSACleanup();
+        // return 1;
     }
-    
-    do {
 
-       
-        char item[1024] = "";
-        strcpy(item, circularBufferPop());
+    // Setup the TCP listening socket - bind port number and local address 
+    // to socket
+    iResult = bind(listenSocket, resultingAddress->ai_addr, (int)resultingAddress->ai_addrlen);
+    if (iResult == SOCKET_ERROR)
+    {
+        printf("bind failed with error: %d\n", WSAGetLastError());
+        freeaddrinfo(resultingAddress);
+        closesocket(listenSocket);
+        WSACleanup();
+        // return 1;
+    }
 
-        //buffer = item;
-        
-        if (item != NULL) {
-            iResult = send(connectSocket, item, strlen(item), 0);
-           
-        }
-        
+    // Since we don't need resultingAddress any more, free it
+    freeaddrinfo(resultingAddress);
 
-        /*if (iResult == SOCKET_ERROR)
+    // Set listenSocket in listening mode
+    iResult = listen(listenSocket, SOMAXCONN);
+    if (iResult == SOCKET_ERROR)
+    {
+        printf("listen failed with error: %d\n", WSAGetLastError());
+        closesocket(listenSocket);
+        WSACleanup();
+        // return 1;
+    }
+
+    printf("Server initialized, waiting for workers.\n");
+    do
+    {
+        acceptedSocket = accept(listenSocket, NULL, NULL);
+
+        if (acceptedSocket == INVALID_SOCKET)
         {
-            printf("send failed with error: %d\n", WSAGetLastError());
-            closesocket(connectSocket);
+            printf("accept failed with error: %d\n", WSAGetLastError());
+            closesocket(listenSocket);
             WSACleanup();
-            //return 1;
-        }*/
-        //duzina poruke 
-        
+            // return 1;
+        }
+        pthread_t DisSendThread;
+        args = (arg_struct*)malloc(sizeof(struct arg_struct) * 1);
+        args->accSocket = acceptedSocket;
+
+        pthread_create(&DisSendThread, NULL, &SendDistribution, args);
+        (void)pthread_join(DisSendThread, NULL);
 
     } while (true);
+   
+
+
+    iResult = shutdown(acceptedSocket, SD_SEND);
+    if (iResult == SOCKET_ERROR)
+    {
+        printf("shutdown failed with error: %d\n", WSAGetLastError());
+        closesocket(acceptedSocket);
+        WSACleanup();
+        //return 1;
+    }
+
 
 
     // cleanup
-    closesocket(connectSocket);
+    closesocket(listenSocket);
+    closesocket(acceptedSocket);
     WSACleanup();
 
 
 
-
-
     return NULL;
+
+
 }
 
 
