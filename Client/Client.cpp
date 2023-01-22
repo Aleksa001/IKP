@@ -13,31 +13,26 @@
 #define DEFAULT_BUFLEN 512
 #define DEFAULT_PORT 5059
 
-// Initializes WinSock2 library
-// Returns true if succeeded, false otherwise.
+
 bool InitializeWindowsSockets();
 
 
 int main()
 {
-    // socket used to communicate with server
+    
     SOCKET connectSocket = INVALID_SOCKET;
-    // variable used to store function return value
+   
     int iResult;
-    // message to send
-    //char m[] = "this is a test" ;
-    //char* messageToSend = m;
-
+    
 
 
     if (InitializeWindowsSockets() == false)
     {
-        // we won't log anything since it will be logged
-        // by InitializeWindowsSockets() function
+        
         return 1;
     }
 
-    // create a socket
+    
     connectSocket = socket(AF_INET,
         SOCK_STREAM,
         IPPROTO_TCP);
@@ -49,14 +44,13 @@ int main()
         return 1;
     }
 
-    // create and initialize address structure
+    
     sockaddr_in serverAddress;
     serverAddress.sin_family = AF_INET;
     serverAddress.sin_addr.s_addr = inet_addr("127.0.0.1");
-        //inet_pton(AF_INET6,"127.0.0.1", );
-        //inet_addr("127.0.0.1");
+        
     serverAddress.sin_port = htons(DEFAULT_PORT);
-    // connect to server specified in serverAddress and socket connectSocket
+    
     if (connect(connectSocket, (SOCKADDR*)&serverAddress, sizeof(serverAddress)) == SOCKET_ERROR)
     {
         printf("Unable to connect to server.\n");
@@ -67,7 +61,7 @@ int main()
     int n;
     do {
 
-        //bzero(buffer, sizeof(buffer));
+        
         printf("Type message:");
         n = 0;
         while ((buffer[n++] = getchar()) != '\n');
@@ -77,7 +71,7 @@ int main()
         }
         //dodam na kraj oznaku za kraj stringa jer posle ispisuje nesto dodatno nakon same poruke
         buffer[n++] = '\0';
-        // Send an prepared message with null terminator included
+        
         iResult = send(connectSocket, buffer, n, 0);
 
         if (iResult == SOCKET_ERROR)

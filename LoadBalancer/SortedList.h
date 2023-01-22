@@ -8,7 +8,6 @@ struct SortedList {
 	struct SortedList* next;
 };
 
-
 void insert(Data* data);
 void sort();
 SortedList* Current();

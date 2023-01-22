@@ -22,6 +22,7 @@
 #define DEFAULT_PORT_REC 5001
 #define DEFAULT_PORT_DIS "5002"
 
+//funkcije
 bool InitializeWindowsSockets();
 void *ListenClient(void* arguments);
 void *ListeningForNewClients(void* arguments);
@@ -30,7 +31,9 @@ void *NewWorker(void* arguments);
 void* Send(void* arguments);
 void *SendDistribution(void* arguments);
 void *Distribution(void* arguments);
-void AddToSortedLIst(Data* d);
+
+
+//promenjljive
 char recvbuf[DEFAULT_BUFLEN];
 char recvbuf2[DEFAULT_BUFLEN];
 char memoryDis[512][1024];
@@ -55,7 +58,7 @@ int main()
     pthread_t ClientThread;
     //prihvata workere i smesta ih u sorted list
     pthread_t WorkerThread;
-    //odlucuje kom workeru salje
+    //distribucija
     pthread_t DistributionThread;
     
     
@@ -79,7 +82,6 @@ int main()
 bool InitializeWindowsSockets()
 {
     WSADATA wsaData;
-    // Initialize windows sockets library for this process
     if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
     {
         printf("WSAStartup failed with error: %d\n", WSAGetLastError());
@@ -88,25 +90,21 @@ bool InitializeWindowsSockets()
     return true;
 }
 void *ListeningForNewWorker(void* arguments) {
-    // Socket used for listening for new clients 
+    
     SOCKET listenSocket = INVALID_SOCKET;
-    // Socket used for communication with client
+ 
     SOCKET acceptedSocket = INVALID_SOCKET;
-    // variable used to store function return value
+    
     int iResult;
-    // Buffer used for storing incoming data
+    
 
  
 
     if (InitializeWindowsSockets() == false)
     {
-        // we won't log anything since it will be logged
-        // by InitializeWindowsSockets() function
-        //return 1;
+        
     }
-    //init bufffer
    
-    // Prepare address information structures
     addrinfo* resultingAddress = NULL;
     addrinfo hints;
 
@@ -116,26 +114,26 @@ void *ListeningForNewWorker(void* arguments) {
     hints.ai_protocol = IPPROTO_TCP; // Use TCP protocol
     hints.ai_flags = AI_PASSIVE;     // 
 
-    // Resolve the server address and port
+   
     iResult = getaddrinfo(NULL, DEFAULT_PORT_WORKER, &hints, &resultingAddress);
     if (iResult != 0)
     {
         printf("getaddrinfo failed with error: %d\n", iResult);
         WSACleanup();
-        //return 1;
+        
     }
 
-    // Create a SOCKET for connecting to server
-    listenSocket = socket(AF_INET,      // IPv4 address famly
-        SOCK_STREAM,  // stream socket
-        IPPROTO_TCP); // TCP
+   
+    listenSocket = socket(AF_INET,      
+        SOCK_STREAM,  
+        IPPROTO_TCP); 
 
     if (listenSocket == INVALID_SOCKET)
     {
         printf("socket failed with error: %ld\n", WSAGetLastError());
         freeaddrinfo(resultingAddress);
         WSACleanup();
-       // return 1;
+       
     }
 
     // Setup the TCP listening socket - bind port number and local address 
@@ -147,7 +145,7 @@ void *ListeningForNewWorker(void* arguments) {
         freeaddrinfo(resultingAddress);
         closesocket(listenSocket);
         WSACleanup();
-       // return 1;
+     
     }
 
     // Since we don't need resultingAddress any more, free it
@@ -160,7 +158,7 @@ void *ListeningForNewWorker(void* arguments) {
         printf("listen failed with error: %d\n", WSAGetLastError());
         closesocket(listenSocket);
         WSACleanup();
-       // return 1;
+       
     }
 
     printf("Server initialized, waiting for workers.\n");
@@ -176,26 +174,7 @@ void *ListeningForNewWorker(void* arguments) {
 
     (void)pthread_join(ListenForNewWorkerThread, NULL);
     (void)pthread_join(SendTrhread, NULL);
-    /*
-     acceptedSocket = accept(listenSocket, NULL, NULL);
-        printf("Prodje tek kad primi nekog!!!");
-        if (acceptedSocket == INVALID_SOCKET)
-        {
-            printf("accept failed with error: %d\n", WSAGetLastError());
-            closesocket(listenSocket);
-            WSACleanup();
-           // return 1;
-        }
-        else
-        {
-            printf("Novi worker!!!(SOCKET: %d)", acceptedSocket);
-            Data a;
-            a.DataCount = 0;
-            a.accSocket = acceptedSocket;
-            //ddoa ovo u sorted list 
-            insert(&a);
-        }
-        */
+    
    
 
     // shutdown the connection since we're done
@@ -205,7 +184,7 @@ void *ListeningForNewWorker(void* arguments) {
         printf("shutdown failed with error: %d\n", WSAGetLastError());
         closesocket(acceptedSocket);
         WSACleanup();
-        //return 1;
+        
     }
 
     // cleanup
@@ -232,7 +211,7 @@ void *ListeningForNewClients(void* arguments) {
     {
         // we won't log anything since it will be logged
         // by InitializeWindowsSockets() function
-        //return 1;
+       
     }
     //init bufffer
     
@@ -253,7 +232,7 @@ void *ListeningForNewClients(void* arguments) {
     {
         printf("getaddrinfo failed with error: %d\n", iResult);
         WSACleanup();
-        //return 1;
+       
     }
 
     // Create a SOCKET for connecting to server
@@ -266,7 +245,7 @@ void *ListeningForNewClients(void* arguments) {
         printf("socket failed with error: %ld\n", WSAGetLastError());
         freeaddrinfo(resultingAddress);
         WSACleanup();
-        //return 1;
+       
     }
 
     // Setup the TCP listening socket - bind port number and local address 
@@ -278,7 +257,7 @@ void *ListeningForNewClients(void* arguments) {
         freeaddrinfo(resultingAddress);
         closesocket(listenSocket);
         WSACleanup();
-        //return 1;
+        
     }
 
     // Since we don't need resultingAddress any more, free it
@@ -291,19 +270,15 @@ void *ListeningForNewClients(void* arguments) {
         printf("listen failed with error: %d\n", WSAGetLastError());
         closesocket(listenSocket);
         WSACleanup();
-       // return 1;
+       
     }
 
     printf("Server initialized, waiting for clients.\n");
 
     do
     {
-        // Wait for clients and accept client connections.
-        // Returning value is acceptedSocket used for further
-        // Client<->Server communication. This version of
-        // server will handle only one client.
-
-        //Cekamo klijente i kad se poveze pravimo novi tred za njega koji slusa samo njega
+       
+        
 
 
         acceptedSocket = accept(listenSocket, NULL, NULL);
@@ -313,10 +288,9 @@ void *ListeningForNewClients(void* arguments) {
             printf("accept failed with error: %d\n", WSAGetLastError());
             closesocket(listenSocket);
             WSACleanup();
-            //return 1;
+           
         }
-        //ovde da se pravi novi tred za svakog kliejnt i da slusa za poruke
-        // nego nece da mi ukljuci nesto pthred.h i ne mogu da koristim....
+        
         pthread_t newThread;
         args = (arg_struct*)malloc(sizeof(struct arg_struct) * 1);
         args->accSocket = acceptedSocket;
@@ -327,7 +301,7 @@ void *ListeningForNewClients(void* arguments) {
         pthread_create(&newThread, NULL, &ListenClient, args);
 
 
-        // here is where server shutdown loguc could be placed
+       
 
     } while (1);
 
@@ -338,7 +312,7 @@ void *ListeningForNewClients(void* arguments) {
         printf("shutdown failed with error: %d\n", WSAGetLastError());
         closesocket(acceptedSocket);
         WSACleanup();
-        //return 1;
+        
     }
 
     // cleanup
@@ -402,7 +376,7 @@ void *NewWorker(void* arguments) {
                 printf("accept failed with error: %d\n", WSAGetLastError());
                 closesocket(listenSocket);
                 WSACleanup();
-                // return 1;
+               
             }
             //sem_wait(&mutex);
             printf("Novi worker!!!(SOCKET: %d)", acceptedSocket);
@@ -423,9 +397,7 @@ void *NewWorker(void* arguments) {
 
     return NULL;
 }
-void AddToSortedLIst(Data* d) {
-    insert(d);
-}
+
 void* Send(void* arguments){
     
     do
@@ -434,7 +406,7 @@ void* Send(void* arguments){
 
 
 
-        //odredi kom ce da salje
+        
            //sem_wait(&mutex);
         SortedList* c = Current();
         char item[1024] = "";
@@ -466,7 +438,7 @@ void* SendDistribution(void* arguments) {
     struct arg_struct* args = (arg_struct*)arguments;
     SOCKET accSoket = args->accSocket;
     int iResult;
-    //da se ocisti lista
+    
     do
     {
     if (dis == 1) {
@@ -564,7 +536,7 @@ void* Distribution(void* arguments){
     {
         // we won't log anything since it will be logged
         // by InitializeWindowsSockets() function
-        //return 1;
+
     }
     //init bufffer
 
@@ -584,7 +556,7 @@ void* Distribution(void* arguments){
     {
         printf("getaddrinfo failed with error: %d\n", iResult);
         WSACleanup();
-        //return 1;
+        
     }
 
     // Create a SOCKET for connecting to server
@@ -597,7 +569,7 @@ void* Distribution(void* arguments){
         printf("socket failed with error: %ld\n", WSAGetLastError());
         freeaddrinfo(resultingAddress);
         WSACleanup();
-        // return 1;
+        
     }
 
     // Setup the TCP listening socket - bind port number and local address 
@@ -609,7 +581,7 @@ void* Distribution(void* arguments){
         freeaddrinfo(resultingAddress);
         closesocket(listenSocket);
         WSACleanup();
-        // return 1;
+        
     }
 
     // Since we don't need resultingAddress any more, free it
@@ -622,7 +594,7 @@ void* Distribution(void* arguments){
         printf("listen failed with error: %d\n", WSAGetLastError());
         closesocket(listenSocket);
         WSACleanup();
-        // return 1;
+        
     }
 
     printf("Server initialized, waiting for workers.\n");
@@ -635,7 +607,7 @@ void* Distribution(void* arguments){
             printf("accept failed with error: %d\n", WSAGetLastError());
             closesocket(listenSocket);
             WSACleanup();
-            // return 1;
+           
         }
         pthread_t DisSendThread;
         args = (arg_struct*)malloc(sizeof(struct arg_struct) * 1);
@@ -654,7 +626,7 @@ void* Distribution(void* arguments){
         printf("shutdown failed with error: %d\n", WSAGetLastError());
         closesocket(acceptedSocket);
         WSACleanup();
-        //return 1;
+       
     }
 
 

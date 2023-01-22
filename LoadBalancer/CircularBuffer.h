@@ -2,8 +2,6 @@
 #ifndef  CircularBuffer
 #define CircularBuffer
 
-
-
 int circularBufferPush(const char* data);
 
 const char* circularBufferPop();

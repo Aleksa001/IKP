@@ -57,9 +57,9 @@ bool InitializeWindowsSockets()
     return true;
 }
 void *RegisterToLoadBalancer(void* arguments) {
-    // socket used to communicate with server
+    
     SOCKET connectSocket = INVALID_SOCKET;
-    // variable used to store function return value
+    
     int iResult;
     // message to send
     char m[] = "this is a test";
@@ -69,9 +69,7 @@ void *RegisterToLoadBalancer(void* arguments) {
 
     if (InitializeWindowsSockets() == false)
     {
-        // we won't log anything since it will be logged
-        // by InitializeWindowsSockets() function
-       // return 1;
+        
     }
 
     // create a socket
@@ -83,42 +81,45 @@ void *RegisterToLoadBalancer(void* arguments) {
     {
         printf("socket failed with error: %ld\n", WSAGetLastError());
         WSACleanup();
-        //return 1;
+        
     }
 
-    // create and initialize address structure
+  
     sockaddr_in serverAddress;
     serverAddress.sin_family = AF_INET;
     serverAddress.sin_addr.s_addr = inet_addr("127.0.0.1");
-    //inet_pton(AF_INET6,"127.0.0.1", );
-    //inet_addr("127.0.0.1");
+    
     serverAddress.sin_port = htons(DEFAULT_PORT);
-    // connect to server specified in serverAddress and socket connectSocket
+   
     if (connect(connectSocket, (SOCKADDR*)&serverAddress, sizeof(serverAddress)) == SOCKET_ERROR)
     {
         printf("Unable to connect to server.\n");
         closesocket(connectSocket);
         WSACleanup();
     }
-    //dodam na kraj oznaku za kraj stringa jer posle ispisuje nesto dodatno nakon same poruke
+   
     iResult = send(connectSocket, messageToSend, DEFAULT_BUFLEN, 0);
     
-    
-   
     do
     { 
         
         iResult = recv(connectSocket, recvbuf, DEFAULT_BUFLEN, 0);
         //strcat_s(recvbuf, "\00");
-        //memory[count] = (char*)malloc(strlen(recvbuf));
-        strcpy_s(memory[count], recvbuf+'\0');
+
+        
         if (iResult > 0)
         {
+            
+            strcpy_s(memory[count], recvbuf);
             printf("Message received from client: %s.\n", memory[count]);
+            printf("Memory:\n");
+            for (int i = 0; i < count + 1; i++) {
+                printf("%d:%s\n", i, memory[i]);
+            }
             count++;
             strcpy(recvbuf, "");
+            strcpy(memory[count], "");
             
-
         }
         else if (iResult == 0)
         {
@@ -132,15 +133,15 @@ void *RegisterToLoadBalancer(void* arguments) {
             // there was an error during recv
             printf("recv failed with error: %d\n", WSAGetLastError());
             //closesocket(acceptedSocket);
-            //break;
+           
 
         }
+
+         
+       
+       
+       
         
-        //strcpy_s(recvbuf, "");
-        printf("Memory:\n");
-        for (int i = 0; i < count; i++) {
-            printf("%d:%s\n", i, memory+i);
-        }
         Sleep(4000);
        
     } while (true);
@@ -154,18 +155,23 @@ void *RegisterToLoadBalancer(void* arguments) {
         WSACleanup();
         //return 1;
     }
-    //duzina poruke 
+   
     // cleanup
     closesocket(connectSocket);
     WSACleanup();
+    for (int i = 0; i < count + 1; i++) {
+
+        strcpy(memory[i], "");
+
+    }
+    count = 0;
     return NULL;
 }
-
 void* Distribution(void* arguments) {
 
-    // socket used to communicate with server
+   
     SOCKET connectSocket = INVALID_SOCKET;
-    // variable used to store function return value
+   
     int iResult;
     // message to send
     char m[] = "this is a test";
@@ -175,12 +181,10 @@ void* Distribution(void* arguments) {
 
     if (InitializeWindowsSockets() == false)
     {
-        // we won't log anything since it will be logged
-        // by InitializeWindowsSockets() function
-       // return 1;
+       
     }
 
-    // create a socket
+   
     connectSocket = socket(AF_INET,
         SOCK_STREAM,
         IPPROTO_TCP);
@@ -189,25 +193,22 @@ void* Distribution(void* arguments) {
     {
         printf("socket failed with error: %ld\n", WSAGetLastError());
         WSACleanup();
-        //return 1;
     }
 
-    // create and initialize address structure
+   
     sockaddr_in serverAddress;
     serverAddress.sin_family = AF_INET;
     serverAddress.sin_addr.s_addr = inet_addr("127.0.0.1");
-    //inet_pton(AF_INET6,"127.0.0.1", );
-    //inet_addr("127.0.0.1");
+   
     serverAddress.sin_port = htons(DEFAULT_PORT_DIS);
-    // connect to server specified in serverAddress and socket connectSocket
+   
     if (connect(connectSocket, (SOCKADDR*)&serverAddress, sizeof(serverAddress)) == SOCKET_ERROR)
     {
         printf("Unable to connect to server.\n");
         closesocket(connectSocket);
         WSACleanup();
     }
-    //dodam na kraj oznaku za kraj stringa jer posle ispisuje nesto dodatno nakon same poruke
-    //iResult = send(connectSocket, messageToSend, DEFAULT_BUFLEN, 0);
+    
 
 
     char recvbuf2[DEFAULT_BUFLEN];
@@ -217,11 +218,12 @@ void* Distribution(void* arguments) {
         iResult = recv(connectSocket, recvbuf2, DEFAULT_BUFLEN, 0);
         if (atoi(recvbuf2) == 1) {
             strcpy(recvbuf2, "");
-            for (int i = 0; i < count; i++) {
+            for (int i = 0; i < count+1; i++) {
                 // printf("%d:%s\n", i, memory + i);
                 strcpy(dis, memory[i]);
-                iResult = send(connectSocket, memory[i], strlen(memory[i]), 0);
-                strcpy((char*)memory + i, "");
+                iResult = send(connectSocket, dis, strlen(dis), 0);
+                strcpy(memory[i], "");
+                strcpy(dis, "");
             }
             count = 0;
             printf("Memory:\n");
@@ -245,9 +247,15 @@ void* Distribution(void* arguments) {
         WSACleanup();
         //return 1;
     }
-    //duzina poruke 
+   
     // cleanup
     closesocket(connectSocket);
     WSACleanup();
+    for (int i = 0; i < count + 1; i++) {
+        
+        strcpy(memory[i], "");
+     
+    }
+    count = 0;
     return NULL;
 }

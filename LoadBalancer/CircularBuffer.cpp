@@ -19,16 +19,8 @@ struct circular_buffer
 
 extern struct circular_buffer* cb = NULL;
 
-//pushovanje podataka u bafer
-
-
 int circularBufferPush(const char* data)
 {
-
-
-
-
-
 	if (cb == NULL) {
 		cb = (struct circular_buffer*)malloc(sizeof(struct circular_buffer));
 
@@ -38,25 +30,21 @@ int circularBufferPush(const char* data)
 		cb->pop_count = 0;
 
 	}
-	if (cb->push == 30) //kruzni bafer je pun
+	if (cb->push == 30) 
 	{
-		cb->push = 0;    //sada je pokazivac opet na nultom mesto, jer je stigao do kraja
+		cb->push = 0;    
 	}
 
 	
-	strcpy(cb->buffer[cb->push], data);  //stavi se podatak u kruzni bafer
-	cb->push++;  //pokazivac se pomeri za +1
+	strcpy(cb->buffer[cb->push], data);  
+	cb->push++;  
 	cb->push_count++;
 
 
 
 	return cb->push_count;
-	//upisan je podatak, counter se poveca za jedan
+	
 }
-
-
-
-//skidanje podataka
 const char* circularBufferPop()
 {
 
@@ -68,12 +56,12 @@ const char* circularBufferPop()
 
 
 
-	if (cb->pop_count >= cb->push_count) //nemamo elemenata u baferu
+	if (cb->pop_count >= cb->push_count) 
 	{
 		return "";
 	}
 
-	const char* data = cb->buffer[cb->pop];  //iscitam u suprotnom
+	const char* data = cb->buffer[cb->pop];  
 	cb->pop++;
 	cb->pop_count++;
 
@@ -85,7 +73,6 @@ const char* circularBufferPop()
 
 	return data;
 }
-
 bool bufferCheck() {
 	if (cb == NULL) {
 		cb = (struct circular_buffer*)malloc(sizeof(struct circular_buffer));

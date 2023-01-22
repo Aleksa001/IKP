@@ -2,10 +2,7 @@
 #include <stdlib.h>
 #include "SortedList.h"
 
-
-
 struct SortedList *head, *tail = NULL;
-
 
 void insert(Data* data)
 {
@@ -27,7 +24,6 @@ void insert(Data* data)
         tail = newNode;
     }
 }
-
 void sort() {
     //Node current will point to head  
     struct SortedList* current = head, * index = NULL;
@@ -71,21 +67,21 @@ void AddToCurrent(int len) {
 void display()
 {
     printf("Trenutno stanje u listi:\n");
-    //Node current will point to head  
+   
     struct SortedList* current = head;
     if (head == NULL) {
         printf("List is empty \n");
         return;
     }
     while (current != NULL) {
-        //Prints each node by incrementing pointer  
+         
         printf("%d ", current->data->DataCount);
         current = current->next;
     }
     printf("\n");
 }
 void Clear(){
-    //Node current will point to head  
+     
     struct SortedList* current = head, * index = NULL;
     
 
@@ -94,7 +90,7 @@ void Clear(){
     }
     else {
         while (current != NULL) {
-            //Node index will point to node next to current  
+            
             current->data->DataCount = 0;
             current = current->next;
         }
